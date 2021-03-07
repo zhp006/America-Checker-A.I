@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <unordered_set>
 using namespace std;
 
 
@@ -13,7 +14,7 @@ class Move{
         int dx;
         int dy;
         string moveType;
-        vector<pair<int, int>> skipped;
+        pair<int,int> skipped;
 
         Move(int source_x, int source_y, int dest_x, int dest_y, string mType)
         {
@@ -35,6 +36,7 @@ class Game
         double timeLeft;
         vector<vector<char>> board;
         vector<vector<bool>> visited;
+        unordered_set<char> enemy;
 
         /* Parse the input file */
         void parse(string file)
@@ -65,6 +67,18 @@ class Game
                 
                 board.push_back(row);
             }
+
+            // enemy set
+            if(player == "BLACK")
+            {
+                enemy.insert('w');
+                enemy.insert('W');
+            }
+            else
+            {
+                enemy.insert('b');
+                enemy.insert('B');
+            }
         }
 
 
@@ -90,10 +104,10 @@ class Game
             return score;
         }
 
-        /* Get all valid moves for a piece*/
+        /* Get all valid moves for a piece */
         vector<Move*> getAllMoves(int row, int col, bool isKing, vector<Move*> moves)
         {
-            vector<Move*> allMoves;
+            vector<Move*> allMoves = getAllSingleMoves(row, col, isKing);
             
 
 
@@ -101,40 +115,71 @@ class Game
 
         }
 
-        /* Get all single move for a piece*/
+        /* Get all single move for a piece */
         vector<Move*> getAllSingleMoves(int row, int col, bool isKing)
         {
             vector<Move*> moves;
+            vector<vector<int>> dir;
             if(isKing)
-            {
-                vector<vector<int>> dir{{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
-                for(auto d : dir)
-                {
-                    int dest_x = col + d[0];
-                    int dest_y = row + d[1];
+                dir = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+            else if(player == "BLACK")
+                dir = {{-1, 1}, {1, 1}};
+            else
+                dir = {{-1, -1}, {1, -1}};
 
-                    if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && board.size())
+            for(auto d : dir)
+            {
+                int dest_x = col + d[0];
+                int dest_y = row + d[1];
+
+                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && board.size())
+                {
+                    if(board[dest_y][dest_x] == '.')
                     {
-                        if(board[dest_y][dest_x] == '.' || true)
-                        {
-                            Move* m = new Move(col, row, dest_x, dest_y, "E");
-                            moves.push_back(m);
-                        }
+                        Move* m = new Move(col, row, dest_x, dest_y, "E");
+                        moves.push_back(m);
                     }
                 }
-            }
-            else if(player == "Black")
-            {
-                return moves;
-            }
-            else
-            {
-                return moves;
             }
 
             return moves;
         }
 
+        /* Get all jump moves */
+        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves)
+        {
+            vector<vector<int>> dir;
+            if(isKing)
+                dir = {{-2, -2}, {2, -2}, {2, 2}, {-2, 2}};
+            else if(player == "BLACK")
+                dir = {{-2, 2}, {2, 2}};
+            else
+                dir = {{-2, -2}, {2, -2}};
+                
+
+            for(auto d : dir)
+            {
+                int dest_x = col + d[0];
+                int dest_y = row + d[1];
+
+                int neighbor_x = col + d[0]/2;
+                int neighbor_y = row + d[1]/2;
+
+                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && board.size())
+                {
+                    if(board[dest_y][dest_x] == '.' && enemy.count(board[neighbor_y][neighbor_x]))
+                    {
+                        Move* m = new Move(col, row, dest_x, dest_y, "J");
+                        m->skipped = make_pair(neighbor_x, neighbor_y);
+                        moves.push_back(m);
+
+                        board[neighbor_y][neighbor_x] = 'x';
+                        getAllJumpMoves(dest_y, dest_x, isKing, moves);
+                    }
+                }
+            }
+
+        }
 
         /* DEBUG print board */
         void printBoard()
@@ -154,11 +199,13 @@ int main()
     Game game;
     game.parse("input.txt");
 
-
-    auto moves = game.getAllSingleMoves(0,0, true);
+    vector<Move*> moves;
+    game.getAllJumpMoves(1,1, true, moves);
     for(auto m : moves)
         game.board[m->dy][m->dx] = '*';
     
+    for(auto m : moves)
+        cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
     game.printBoard();
     return 0;
 }
