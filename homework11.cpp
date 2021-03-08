@@ -168,7 +168,7 @@ class Game
                 int neighbor_x = col + d[0]/2;
                 int neighbor_y = row + d[1]/2;
 
-                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && board.size())
+                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && dest_y < board.size())
                 {
                     if(board[dest_y][dest_x] == '.' && enemy.count(board[neighbor_y][neighbor_x]))
                     {
@@ -181,6 +181,7 @@ class Game
                         board[neighbor_y][neighbor_x] = 'x';
                         board[row][col] = '.';
 
+                        
                         //Check if the piece become a king after move
                         if(!isKing)
                         {
@@ -196,6 +197,7 @@ class Game
                         board[recover->skipped.second][recover->skipped.first] = m->captured;
                         moves.pop_back();
                     }
+
                 }
             }
 
@@ -224,7 +226,9 @@ int main()
 
     vector<Move*> moves;
     vector<vector<Move*>> allMoves;
-    game.getAllJumpMoves(4,3, false, moves, allMoves);
+    game.getAllJumpMoves(4,3, true, moves, allMoves);
+
+
 
     for(auto moves : allMoves)
     {
