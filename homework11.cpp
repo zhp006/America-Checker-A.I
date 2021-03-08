@@ -15,6 +15,7 @@ class Move{
         int dy;
         string moveType;
         pair<int,int> skipped;
+        char captured;
 
         Move(int source_x, int source_y, int dest_x, int dest_y, string mType)
         {
@@ -146,8 +147,9 @@ class Game
         }
 
         /* Get all jump moves */
-        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves)
+        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves)
         {
+
             vector<vector<int>> dir;
             if(isKing)
                 dir = {{-2, -2}, {2, -2}, {2, 2}, {-2, 2}};
@@ -157,6 +159,7 @@ class Game
                 dir = {{-2, -2}, {2, -2}};
                 
 
+            bool leaf = true;
             for(auto d : dir)
             {
                 int dest_x = col + d[0];
@@ -169,15 +172,35 @@ class Game
                 {
                     if(board[dest_y][dest_x] == '.' && enemy.count(board[neighbor_y][neighbor_x]))
                     {
+                        leaf = false;
                         Move* m = new Move(col, row, dest_x, dest_y, "J");
                         m->skipped = make_pair(neighbor_x, neighbor_y);
                         moves.push_back(m);
 
+                        m->captured = board[neighbor_y][neighbor_x];
                         board[neighbor_y][neighbor_x] = 'x';
-                        getAllJumpMoves(dest_y, dest_x, isKing, moves);
+                        board[row][col] = '.';
+
+                        //Check if the piece become a king after move
+                        if(!isKing)
+                        {
+                            if(player == "BLACK" && dest_y == board.size() - 1)
+                                isKing = true;
+                            else if(player == "WHITE" && dest_y == 0)
+                                isKing = true;
+                        }
+
+                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves);
+
+                        Move* recover = moves.back();
+                        board[recover->skipped.second][recover->skipped.first] = m->captured;
+                        moves.pop_back();
                     }
                 }
             }
+
+            if(leaf)
+                allMoves.push_back(moves);
 
         }
 
@@ -200,12 +223,30 @@ int main()
     game.parse("input.txt");
 
     vector<Move*> moves;
-    game.getAllJumpMoves(1,1, true, moves);
-    for(auto m : moves)
-        game.board[m->dy][m->dx] = '*';
+    vector<vector<Move*>> allMoves;
+    game.getAllJumpMoves(4,3, false, moves, allMoves);
+
+    for(auto moves : allMoves)
+    {
+        for(auto m : moves)
+            game.board[m->dy][m->dx] = '*';
+    }
+
+    // for(auto m : allMoves[1])
+    //     game.board[m->dy][m->dx] = '*';
+
+    for(auto moves : allMoves)
+    {
+        for(auto m : moves)
+            cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
+        cout << "-------------------" << endl;
+    }
+
+    // for(auto m : moves)
+    //     game.board[m->dy][m->dx] = '*';
     
-    for(auto m : moves)
-        cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
+    // for(auto m : moves)
+    //     cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
     game.printBoard();
     return 0;
 }
