@@ -106,11 +106,20 @@ class Game
         }
 
         /* Get all valid moves for a piece */
-        vector<Move*> getAllMoves(int row, int col, bool isKing, vector<Move*> moves)
+        vector<vector<Move*>> getAllMoves(int row, int col, bool isKing)
         {
-            vector<Move*> allMoves = getAllSingleMoves(row, col, isKing);
-            
+            cout << "calling getting all moves" << endl;
+            vector<vector<Move*>> allMoves;
+            vector<Move*> moves;
+            getAllJumpMoves(row, col, isKing, moves, allMoves, false);
 
+            vector<Move*> singleMoves = getAllSingleMoves(row, col, isKing);
+            for(auto m : singleMoves)
+            {
+                vector<Move*> tmp;
+                tmp.push_back(m);
+                allMoves.push_back(tmp);
+            }
 
             return allMoves;
 
@@ -238,9 +247,7 @@ int main()
     Game game;
     game.parse("input.txt");
 
-    vector<Move*> moves;
-    vector<vector<Move*>> allMoves;
-    game.getAllJumpMoves(4,3, true, moves, allMoves, false);
+    auto allMoves = game.getAllMoves(0,3, true);
 
 
 
@@ -250,8 +257,6 @@ int main()
             game.board[m->dy][m->dx] = '*';
     }
 
-    // for(auto m : allMoves[1])
-    //     game.board[m->dy][m->dx] = '*';
 
     for(auto moves : allMoves)
     {
@@ -260,11 +265,7 @@ int main()
         cout << "-------------------" << endl;
     }
 
-    // for(auto m : moves)
-    //     game.board[m->dy][m->dx] = '*';
     
-    // for(auto m : moves)
-    //     cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
     game.printBoard();
     return 0;
 }
