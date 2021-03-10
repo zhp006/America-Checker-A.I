@@ -147,8 +147,14 @@ class Game
         }
 
         /* Get all jump moves */
-        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves)
+        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned)
         {
+
+            if(crowned)
+            {
+                allMoves.push_back(moves);
+                return;
+            }
 
             vector<vector<int>> dir;
             if(isKing)
@@ -186,12 +192,20 @@ class Game
                         if(!isKing)
                         {
                             if(player == "BLACK" && dest_y == board.size() - 1)
+                            {
                                 isKing = true;
+                                crowned = true;
+                            }
                             else if(player == "WHITE" && dest_y == 0)
+                            {
                                 isKing = true;
+                                crowned = true;
+                            }
                         }
 
-                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves);
+                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves, crowned);
+                        if(crowned)
+                            crowned = false;
 
                         Move* recover = moves.back();
                         board[recover->skipped.second][recover->skipped.first] = m->captured;
@@ -226,7 +240,7 @@ int main()
 
     vector<Move*> moves;
     vector<vector<Move*>> allMoves;
-    game.getAllJumpMoves(4,3, true, moves, allMoves);
+    game.getAllJumpMoves(4,3, true, moves, allMoves, false);
 
 
 
