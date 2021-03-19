@@ -16,6 +16,7 @@ class Move{
         string moveType;
         pair<int,int> skipped;
         char captured;
+        double finalScore;
 
         Move(int source_x, int source_y, int dest_x, int dest_y, string mType)
         {
@@ -106,14 +107,14 @@ class Game
         }
 
         /* Get all valid moves for a piece */
-        vector<vector<Move*>> getAllMoves(int row, int col, bool isKing)
+        vector<vector<Move*>> getAllMoves(int row, int col, bool isKing, double currentScore)
         {
             cout << "calling getting all moves" << endl;
             vector<vector<Move*>> allMoves;
             vector<Move*> moves;
-            getAllJumpMoves(row, col, isKing, moves, allMoves, false);
+            getAllJumpMoves(row, col, isKing, moves, allMoves, false, currentScore);
 
-            vector<Move*> singleMoves = getAllSingleMoves(row, col, isKing);
+            vector<Move*> singleMoves = getAllSingleMoves(row, col, isKing, currentScore);
             for(auto m : singleMoves)
             {
                 vector<Move*> tmp;
@@ -126,7 +127,7 @@ class Game
         }
 
         /* Get all single move for a piece */
-        vector<Move*> getAllSingleMoves(int row, int col, bool isKing)
+        vector<Move*> getAllSingleMoves(int row, int col, bool isKing, double currentScore)
         {
             vector<Move*> moves;
             vector<vector<int>> dir;
@@ -147,6 +148,16 @@ class Game
                     if(board[dest_y][dest_x] == '.')
                     {
                         Move* m = new Move(col, row, dest_x, dest_y, "E");
+                        if(!isKing)
+                        {
+                            if(player == "BLACK" && dest_y == board.size() - 1)
+                                m->finalScore = currentScore - 0.5;
+                            else if(player == "WHITE" && dest_y == 0)
+                                m->finalScore = currentScore + 0.5;
+                        }
+                        else
+                            m->finalScore = currentScore;
+
                         moves.push_back(m);
                     }
                 }
@@ -156,7 +167,7 @@ class Game
         }
 
         /* Get all jump moves */
-        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned)
+        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned, double currentScore)
         {
 
             if(crowned)
@@ -212,7 +223,7 @@ class Game
                             }
                         }
 
-                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves, crowned);
+                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves, crowned, currentScore);
                         if(crowned)
                             crowned = false;
 
@@ -246,24 +257,33 @@ int main()
 {
     Game game;
     game.parse("input.txt");
+    double currentScore = game.eval();
+    vector<Move*> moves = game.getAllSingleMoves(6,4,false, currentScore);
+    //auto allMoves = game.getAllMoves(0,3, true, currentScore);
+    
 
-    auto allMoves = game.getAllMoves(0,3, true);
-
-
-
-    for(auto moves : allMoves)
+    for(auto m : moves)
     {
-        for(auto m : moves)
-            game.board[m->dy][m->dx] = '*';
+        game.board[m->dy][m->dx] = '*';
+        cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
+        cout << "Score: " << m->finalScore << endl;
     }
+        
+    
+        
 
+    // for(auto moves : allMoves)
+    // {
+    //     for(auto m : moves)
+    //         game.board[m->dy][m->dx] = '*';
+    // }
 
-    for(auto moves : allMoves)
-    {
-        for(auto m : moves)
-            cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
-        cout << "-------------------" << endl;
-    }
+    // for(auto moves : allMoves)
+    // {
+    //     for(auto m : moves)
+    //         cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
+    //     cout << "-------------------" << endl;
+    // }
 
     
     game.printBoard();
