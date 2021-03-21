@@ -290,7 +290,7 @@ class Game
                 if(i == moves.size() - 1)
                 {
                     if(moves[i]->captured != '/')
-                        tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = '@';
+                        tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = '.';
 
                     //check if it is crowned
                     if(isKing || moves[i]->isCrowned)
@@ -315,7 +315,7 @@ class Game
                 else
                 {
                     if(moves[i]->captured != '/')
-                        tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = '@';
+                        tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = '.';
                 }             
             }
 
