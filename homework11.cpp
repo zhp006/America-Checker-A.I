@@ -52,9 +52,9 @@ class Game
         double timeLeft;
         vector<vector<char>> board;
         vector<vector<bool>> visited;
-        unordered_set<char> enemy;
-        vector<Move*> minBestMove;
-        vector<Move*> maxBestMove;
+        // unordered_set<char> enemy;
+        // vector<Move*> minBestMove;
+        // vector<Move*> maxBestMove;
 
         /* Parse the input file */
         void parse(string file)
@@ -87,16 +87,16 @@ class Game
             }
 
             // enemy set
-            if(player == "BLACK")
-            {
-                enemy.insert('w');
-                enemy.insert('W');
-            }
-            else
-            {
-                enemy.insert('b');
-                enemy.insert('B');
-            }
+            // if(player == "BLACK")
+            // {
+            //     enemy.insert('w');
+            //     enemy.insert('W');
+            // }
+            // else
+            // {
+            //     enemy.insert('b');
+            //     enemy.insert('B');
+            // }
         }
 
 
@@ -181,7 +181,6 @@ class Game
         /* Get all jump moves */
         void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned, double currentScore, string player, vector<vector<char>> board)
         {
-
             if(crowned)
             {
                 allMoves.push_back(moves);
@@ -197,6 +196,22 @@ class Game
                 dir = {{-2, -2}, {2, -2}};
                 
 
+            /*DEBUG*/
+            unordered_set<char> enemy;
+            if(player == "BLACK")
+            {
+                enemy.insert('W');
+                enemy.insert('w');
+            }
+            else
+            {
+                enemy.insert('B');
+                enemy.insert('b');
+            }
+
+            /*DEBUG*/
+
+
             bool leaf = true;
             for(auto d : dir)
             {
@@ -205,6 +220,9 @@ class Game
 
                 int neighbor_x = col + d[0]/2;
                 int neighbor_y = row + d[1]/2;
+
+
+                
 
                 if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && dest_y < board.size())
                 {
@@ -332,6 +350,8 @@ class Game
         {
             double value = 0.0;
             pair<double, vector<Move*>> result;
+
+
             if(player == "WHITE")
                 result = maxValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
             else
@@ -344,6 +364,8 @@ class Game
         pair<double, vector<Move*>> maxValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
         {
             vector<Move*> bestMove;
+            vector<Move*> lastJump;
+            bool hasJump = false;
             //termination condition
             if(curDepth == depthLimit)
             {
@@ -357,12 +379,7 @@ class Game
             if(curPlayer == "BLACK")
                 nextPlayer = "WHITE";
             else
-            {
-                // cout << "white playing" << endl;
-                // cout << "current board: " << endl;
-                // printAnyBoard(board);
                 nextPlayer = "BLACK";
-            }
                 
             double value = -DBL_MAX;
 
@@ -380,6 +397,18 @@ class Game
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
                 auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore, curPlayer, board);
+                /*TEST*/
+                for(auto moves : allPieceMoves)
+                {
+                    if(moves.empty()) continue;
+                    if(moves.front()->moveType == "J" && moves.size() > lastJump.size())
+                    {
+                        hasJump = true;
+                        lastJump = moves;
+                    }
+                        
+                }
+                /*TEST*/
                 allMoves.insert(allMoves.end(), allPieceMoves.begin(), allPieceMoves.end());
             }
             // if there is no valid move
@@ -399,8 +428,8 @@ class Game
                 {
                     bool isKing = (board[moves.front()->sy][moves.front()->sx] == 'W' || board[moves.front()->sy][moves.front()->sx] == 'B') ? true : false;
                     auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing, curPlayer, board);
-
                     double resultScore = minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer).first;
+
                     if(value < resultScore)
                     {
                         value = resultScore;
@@ -425,6 +454,11 @@ class Game
                     alpha = max(alpha, value);
                 }
             }
+
+            /*TEST*/
+            if(bestMove.front()->moveType != "J" && hasJump)
+                bestMove = lastJump;
+            /*TEST*/
             return make_pair(value, bestMove);
             //return value;
         }
@@ -432,6 +466,8 @@ class Game
         pair<double, vector<Move*>> minValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
         {
             vector<Move*> bestMove;
+            vector<Move*> lastJump;
+            bool hasJump = false;
             //termination condition
             if(curDepth == depthLimit)
             {
@@ -444,9 +480,6 @@ class Game
             string nextPlayer = "";
             if(curPlayer == "BLACK")
             {
-                // cout << "black playing" << endl;
-                // cout << "current board: " << endl;
-                // printAnyBoard(board);
                 nextPlayer = "WHITE";
             }
             else
@@ -463,11 +496,24 @@ class Game
                 return make_pair(finalScore, bestMove);
                 //return evalAny(board);
             }
-                
+            
+            int size = 0;
             for(auto p : pieces)
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
                 auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore, curPlayer, board);
+                /*TEST*/
+                for(auto moves : allPieceMoves)
+                {
+                    if(moves.empty()) continue;
+                    if(moves.front()->moveType == "J" && moves.size() > lastJump.size())
+                    {
+                        hasJump = true;
+                        lastJump = moves;
+                    }
+                        
+                }
+                /*TEST*/
                 allMoves.insert(allMoves.end(), allPieceMoves.begin(), allPieceMoves.end());
             }
             // if there is no valid move
@@ -517,6 +563,10 @@ class Game
                 }
             }
 
+            /*TEST*/
+            if(bestMove.front()->moveType != "J" && hasJump)
+                bestMove = lastJump;
+            /*TEST*/
             return make_pair(value, bestMove);
             //return value;
         }
@@ -606,17 +656,17 @@ class Game
         void playGameMode(double currentScore)
         {
             pair<double, vector<Move*>> result;
-            result = abSearch(board, 5, currentScore);
+            result = abSearch(board, 6, currentScore);
             writeMoveToFile(result.second);
 
 
-            // string outputMove = "";
-            // for(auto m : result.second)
-            // {
-            //     outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
-            //     if(outputMove.size())
-            //         cout << outputMove << endl;
-            // }
+            string outputMove = "";
+            for(auto m : result.second)
+            {
+                outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+                if(outputMove.size())
+                    cout << outputMove << endl;
+            }
         }
         /*-------------------------------------------------------DEBUG FUNCTIONS-------------------------------------------------------*/
 
