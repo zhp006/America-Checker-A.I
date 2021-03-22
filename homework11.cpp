@@ -587,6 +587,21 @@ class Game
 
             writeMoveToFile(move);
         }
+
+        void playGameMode(double currentScore)
+        {
+            cout << "playing" << endl;
+            pair<double, vector<Move*>> result;
+            result = abSearch(board, 3, currentScore);
+            writeMoveToFile(result.second);
+            // string outputMove = "";
+            // for(auto m : result.second)
+            // {
+            //     outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+            //     if(outputMove.size())
+            //         cout << outputMove << endl;
+            // }
+        }
         /*-------------------------------------------------------DEBUG FUNCTIONS-------------------------------------------------------*/
 
         /* DEBUG print board */
@@ -664,6 +679,8 @@ int main()
     
     if(game.mode == "SINGLE")
         game.playSingleMove(currentScore);
+    else
+        game.playGameMode(currentScore);
 
 
 
