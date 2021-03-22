@@ -581,19 +581,35 @@ class Game
 
         void playSingleMove(double currentScore)
         {
-            auto piece = getAllPiece(player, board).front();
-            bool isKing = (board[piece.first][piece.second] == 'W' || board[piece.first][piece.second] == 'B') ? true : false;
-            auto move = getAllMoves(piece.first, piece.second, isKing, 0.0, player, board).back();
+            auto pieces = getAllPiece(player, board);
+            vector<vector<Move*>> allMoves;
+            for(auto p : pieces)
+            {
+                bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
+                auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore, player, board);
+                for(auto moves : allPieceMoves)
+                {
+                    if(moves.empty()) continue;
+                    if(moves.front()->moveType == "J")
+                    {
+                        writeMoveToFile(moves);
+                        return;
+                    }
+                        
+                }
+                allMoves.insert(allMoves.end(), allPieceMoves.begin(), allPieceMoves.end());
+            }
 
-            writeMoveToFile(move);
+            writeMoveToFile(allMoves.back());
         }
 
         void playGameMode(double currentScore)
         {
-            cout << "playing" << endl;
             pair<double, vector<Move*>> result;
-            result = abSearch(board, 3, currentScore);
+            result = abSearch(board, 5, currentScore);
             writeMoveToFile(result.second);
+
+
             // string outputMove = "";
             // for(auto m : result.second)
             // {
