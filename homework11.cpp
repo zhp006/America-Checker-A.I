@@ -121,13 +121,13 @@ class Game
         }
 
         /* Get all valid moves for a piece */
-        vector<vector<Move*>> getAllMoves(int row, int col, bool isKing, double currentScore)
+        vector<vector<Move*>> getAllMoves(int row, int col, bool isKing, double currentScore, string currentPlayer, vector<vector<char>> board)
         {
             vector<vector<Move*>> allMoves;
             vector<Move*> moves;
-            getAllJumpMoves(row, col, isKing, moves, allMoves, false, currentScore);
+            getAllJumpMoves(row, col, isKing, moves, allMoves, false, currentScore, currentPlayer, board);
 
-            vector<Move*> singleMoves = getAllSingleMoves(row, col, isKing, currentScore);
+            vector<Move*> singleMoves = getAllSingleMoves(row, col, isKing, currentScore, currentPlayer, board);
             for(auto m : singleMoves)
             {
                 vector<Move*> tmp;
@@ -140,7 +140,7 @@ class Game
         }
 
         /* Get all single move for a piece */
-        vector<Move*> getAllSingleMoves(int row, int col, bool isKing, double currentScore)
+        vector<Move*> getAllSingleMoves(int row, int col, bool isKing, double currentScore, string player, vector<vector<char>> board)
         {
             vector<Move*> moves;
             vector<vector<int>> dir;
@@ -155,8 +155,7 @@ class Game
             {
                 int dest_x = col + d[0];
                 int dest_y = row + d[1];
-
-                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && board.size())
+                if(dest_x >= 0 && dest_x < board.size() && dest_y >= 0 && dest_y < board.size())
                 {
                     if(board[dest_y][dest_x] == '.')
                     {
@@ -170,15 +169,15 @@ class Game
                         }
 
                         moves.push_back(m);
+
                     }
                 }
             }
-
             return moves;
         }
 
         /* Get all jump moves */
-        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned, double currentScore)
+        void getAllJumpMoves(int row, int col, bool isKing, vector<Move*>& moves, vector<vector<Move*>>& allMoves, bool crowned, double currentScore, string player, vector<vector<char>> board)
         {
 
             if(crowned)
@@ -237,7 +236,7 @@ class Game
                             }
                         }
 
-                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves, crowned, currentScore);
+                        getAllJumpMoves(dest_y, dest_x, isKing, moves, allMoves, crowned, currentScore, player, board);
                         if(crowned)
                             crowned = false;
 
@@ -254,7 +253,7 @@ class Game
                 allMoves.push_back(moves);
         }
 
-        vector<pair<int, int>> getAllPiece(string player)
+        vector<pair<int, int>> getAllPiece(string player, vector<vector<char>>& board)
         {
             vector<pair<int, int>> pieces;
             for(int i = 0; i < board.size(); i++)
@@ -278,7 +277,7 @@ class Game
         }
 
         //evaluate the result of a series of moves and update the final score on the last move
-        vector<vector<char>> evalMoves(vector<Move*>& moves, int startRow, int startCol, double currentScore, bool isKing)
+        vector<vector<char>> evalMoves(vector<Move*>& moves, int startRow, int startCol, double currentScore, bool isKing, string player, vector<vector<char>> board)
         {
             auto tmpBoard = board;
             double finalScore = 0.0;
@@ -324,21 +323,30 @@ class Game
                 }             
             }
 
-            // cout << "result board after moves" << endl;
-            // cout << "final score: " << evalAny(tmpBoard) << endl;
-            // printAnyBoard(tmpBoard);
-            // cout << "--------end of this bord------------" << endl;
             return tmpBoard;
         }
 
         double abSearch(vector<vector<char>> board, int depthLimit, double currentScore)
         {
-            double value = maxValue(board, DBL_MIN, DBL_MAX, 0, depthLimit, currentScore, player);
+            double value = 0.0;
+            if(player == "WHITE")
+                value = maxValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
+            else
+            {
+                cout << "called" << endl;
+                value = minValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
+                cout << value << endl;
+                cout << "finished" << endl;
+            }
+                
+
             return value;
         }
 
         double maxValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
         {
+            cout << "maxValue get called" << endl;
+            cout << "curDepth: " << curDepth << endl;
             //termination condition
             if(curDepth == depthLimit)
                 return evalAny(board);
@@ -347,19 +355,34 @@ class Game
             if(curPlayer == "BLACK")
                 nextPlayer = "WHITE";
             else
+            {
+                cout << "white playing" << endl;
+                cout << "current board: " << endl;
+                printAnyBoard(board);
                 nextPlayer = "BLACK";
-            double value = DBL_MIN;
+            }
+                
+            double value = -DBL_MAX;
 
             //get all moves for all pieces of the current player
-            auto pieces = getAllPiece(curPlayer);
+            auto pieces = getAllPiece(curPlayer, board);
             vector<vector<Move*>> allMoves;
+            if(pieces.empty())
+                return evalAny(board);
             for(auto p : pieces)
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
-                auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore);
+                auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore, curPlayer, board);
                 allMoves.insert(allMoves.end(), allPieceMoves.begin(), allPieceMoves.end());
             }
+            // if there is no valid move
+            if(allMoves.size() == 1 && allMoves[0].empty())
+                return evalAny(board);
 
+            /*DEBUG*/
+            cout << "all valid moves: " << endl;
+            printAllMoves(allMoves);
+            /*DEBUG*/
             for(int i = 0; i < allMoves.size(); i++)
             {
                 auto moves = allMoves[i];
@@ -367,7 +390,16 @@ class Game
                 if(moves.front()->sx != -1)
                 {
                     bool isKing = (board[moves.front()->sy][moves.front()->sx] == 'W' || board[moves.front()->sy][moves.front()->sx] == 'B') ? true : false;
-                    auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing);
+                    auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing, curPlayer, board);
+
+                    /*DEBUG*/
+                    cout << "applying moves" << endl;
+                    printMoves(moves);
+                    
+                    // cout << "resulting board" << endl;
+                    // printAnyBoard(resultBoard);
+                    // cout << "**************** end of this board ***************" << endl;
+                    /*DEBUG*/
                     value = max(value, minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
 
                     if(value >= beta) return value;
@@ -386,21 +418,37 @@ class Game
 
             string nextPlayer = "";
             if(curPlayer == "BLACK")
+            {
+                cout << "black playing" << endl;
+                cout << "current board: " << endl;
+                printAnyBoard(board);
                 nextPlayer = "WHITE";
+            }
             else
                 nextPlayer = "BLACK";
+                
             double value = DBL_MAX;
-
             //get all moves for all pieces of the current player
-            auto pieces = getAllPiece(curPlayer);
+            auto pieces = getAllPiece(curPlayer, board);
+            
             vector<vector<Move*>> allMoves;
+            if(pieces.empty())
+                return evalAny(board);
             for(auto p : pieces)
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
-                auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore);
+                auto allPieceMoves = getAllMoves(p.first, p.second, isKing, currentScore, curPlayer, board);
                 allMoves.insert(allMoves.end(), allPieceMoves.begin(), allPieceMoves.end());
             }
+            // if there is no valid move
+            if(allMoves.size() == 1 && allMoves[0].empty())
+                return evalAny(board);
+            
 
+            /*DEBUG*/
+            cout << "all valid moves: " << endl;
+            printAllMoves(allMoves);
+            /*DEBUG*/
             for(int i = 0; i < allMoves.size(); i++)
             {
                 auto moves = allMoves[i];
@@ -408,10 +456,22 @@ class Game
                 if(moves.front()->sx != -1)
                 {
                     bool isKing = (board[moves.front()->sy][moves.front()->sx] == 'W' || board[moves.front()->sy][moves.front()->sx] == 'B') ? true : false;
-                    auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing);
+                    auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing, curPlayer, board);
+                    /*DEBUG*/
+                    cout << "applying moves" << endl;
+                    printMoves(moves);
+                    /*DEBUG*/
                     value = min(value, maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
 
-                    if(value <= alpha) return value;
+                    cout << "current value: " << value << endl;
+
+                    if(value <= alpha) 
+                    {
+                        cout << "hit here" << endl;
+                        cout << "value: " << value << endl;
+                        return value;
+                    }
+                    
 
                     beta = min(beta, value);
                 }
@@ -439,6 +499,28 @@ class Game
 
             return score;
         }
+
+        /* Not very efficient way to find the move with corresponding value */
+        vector<Move*> findMove(double value, double currentScore)
+        {
+            auto pieces = getAllPiece(player, board);
+
+            for(auto p : pieces)
+            {
+                bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
+                auto allMoves = getAllMoves(p.first, p.second, isKing, currentScore, player, board);
+                for(auto moves : allMoves)
+                {
+                    auto resultBoard = evalMoves(moves, p.first, p.second, currentScore, isKing, player, board);
+                    if(evalAny(resultBoard) == value)
+                        return moves;
+                }
+            }
+
+            //not going to get here
+            vector<Move*> ret;
+            return ret;
+        }
         /* DEBUG print board */
         void printBoard()
         {
@@ -458,6 +540,36 @@ class Game
                 for(auto p : row)
                     cout << p << " ";
                 cout << endl;
+            }
+        }
+
+        /* DEBUG print all Moves */
+        void printAllMoves(const vector<vector<Move*>>& allMoves)
+        {
+            for(auto moves : allMoves)
+            {
+                string outputMove = "";
+                if(moves.empty()) continue;
+                for(auto m : moves)
+                {
+                    outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+                    if(outputMove.size())
+                        cout << outputMove << endl;
+                }
+                cout << "----------------" << endl;
+            }
+        }
+
+        /* DEBUG print moves */
+        void printMoves(const vector<Move*>& moves)
+        {
+            if(moves.empty()) return;
+            string outputMove = "";
+            for(auto m : moves)
+            {
+                outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+                if(outputMove.size())
+                    cout << outputMove << endl;
             }
         }
 
@@ -482,7 +594,17 @@ int main()
     string player = game.player;
 
 
-    double value = game.abSearch(game.board, 3, currentScore);
+    double value = game.abSearch(game.board, 2, currentScore);
+    auto move = game.findMove(value, currentScore);
+    string outputMove = "";
+    for(auto m : move)
+    {
+        outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+        if(outputMove.size())
+            cout << outputMove << endl;
+    }
+
+
     //auto pieces = game.getAllPiece(player);
 
     /***************************************************************************************************************************************************/
