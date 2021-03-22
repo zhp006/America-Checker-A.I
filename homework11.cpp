@@ -53,7 +53,8 @@ class Game
         vector<vector<char>> board;
         vector<vector<bool>> visited;
         unordered_set<char> enemy;
-
+        vector<Move*> minBestMove;
+        vector<Move*> maxBestMove;
 
         /* Parse the input file */
         void parse(string file)
@@ -357,9 +358,9 @@ class Game
                 nextPlayer = "WHITE";
             else
             {
-                cout << "white playing" << endl;
-                cout << "current board: " << endl;
-                printAnyBoard(board);
+                // cout << "white playing" << endl;
+                // cout << "current board: " << endl;
+                // printAnyBoard(board);
                 nextPlayer = "BLACK";
             }
                 
@@ -405,6 +406,13 @@ class Game
                         value = resultScore;
                         bestMove = moves;
                     }
+                    else if(value == resultScore)
+                    {
+                        if(moves.size() > bestMove.size() || (moves.front()->moveType == "J" && bestMove.front()->moveType == "E"))
+                            bestMove = moves;
+                        else if(moves.size() == bestMove.size() && moves.front()->isCrowned && bestMove.front()-> moveType != "J")
+                            bestMove = moves;
+                    }
                     //value = max(value, minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
                     
 
@@ -436,9 +444,9 @@ class Game
             string nextPlayer = "";
             if(curPlayer == "BLACK")
             {
-                cout << "black playing" << endl;
-                cout << "current board: " << endl;
-                printAnyBoard(board);
+                // cout << "black playing" << endl;
+                // cout << "current board: " << endl;
+                // printAnyBoard(board);
                 nextPlayer = "WHITE";
             }
             else
@@ -470,10 +478,6 @@ class Game
                 //return evalAny(board);
             }
                 
-            /*DEBUG*/
-            cout << "all valid moves " << endl;
-            printAllMoves(allMoves);
-            /*DEBUG*/
 
             for(int i = 0; i < allMoves.size(); i++)
             {
@@ -486,19 +490,18 @@ class Game
 
                     double resultScore = maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer).first;
 
-                    cout << "current depth: " << curDepth << endl;
-                    cout << "current value: " << value << endl;
-                    cout << "current i: " << i << endl;
-                    cout << "result score after applying this move: " << resultScore << endl;
-                    printMoves(moves);
+
                     if(value > resultScore)
                     {
                         value = resultScore;
-
-                        cout << "updating value with this move: " << endl;
-                        printMoves(moves);
-                        cout << "with value: " << value << endl;
                         bestMove = moves;
+                    }
+                    else if(value == resultScore)
+                    {
+                        if(moves.size() > bestMove.size() || (moves.front()->moveType == "J" && bestMove.front()->moveType == "E"))
+                            bestMove = moves;
+                        else if(moves.size() == bestMove.size() && moves.front()->isCrowned && bestMove.front()-> moveType != "J")
+                            bestMove = moves;
                     }
                     //value = min(value, maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
 
@@ -560,6 +563,9 @@ class Game
             vector<Move*> ret;
             return ret;
         }
+
+        /*-------------------------------------------------------DEBUG FUNCTIONS-------------------------------------------------------*/
+
         /* DEBUG print board */
         void printBoard()
         {
@@ -634,7 +640,6 @@ int main()
 
     pair<double, vector<Move*>> result;
     result = game.abSearch(game.board, 3, currentScore);
-    cout << "final score: " << result.first << endl;
     string outputMove = "";
     for(auto m : result.second)
     {
