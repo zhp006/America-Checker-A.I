@@ -54,6 +54,7 @@ class Game
         vector<vector<bool>> visited;
         unordered_set<char> enemy;
 
+
         /* Parse the input file */
         void parse(string file)
         {
@@ -326,30 +327,30 @@ class Game
             return tmpBoard;
         }
 
-        double abSearch(vector<vector<char>> board, int depthLimit, double currentScore)
+        pair<double, vector<Move*>> abSearch(vector<vector<char>> board, int depthLimit, double currentScore)
         {
             double value = 0.0;
+            pair<double, vector<Move*>> result;
             if(player == "WHITE")
-                value = maxValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
+                result = maxValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
             else
-            {
-                cout << "called" << endl;
-                value = minValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
-                cout << value << endl;
-                cout << "finished" << endl;
-            }
+                result = minValue(board, -DBL_MAX, DBL_MAX, 0, depthLimit, currentScore, player);
                 
 
-            return value;
+            return result;
         }
 
-        double maxValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
+        pair<double, vector<Move*>> maxValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
         {
-            cout << "maxValue get called" << endl;
-            cout << "curDepth: " << curDepth << endl;
+            vector<Move*> bestMove;
             //termination condition
             if(curDepth == depthLimit)
-                return evalAny(board);
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
 
             string nextPlayer = "";
             if(curPlayer == "BLACK")
@@ -368,7 +369,12 @@ class Game
             auto pieces = getAllPiece(curPlayer, board);
             vector<vector<Move*>> allMoves;
             if(pieces.empty())
-                return evalAny(board);
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
             for(auto p : pieces)
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
@@ -377,12 +383,13 @@ class Game
             }
             // if there is no valid move
             if(allMoves.size() == 1 && allMoves[0].empty())
-                return evalAny(board);
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
 
-            /*DEBUG*/
-            cout << "all valid moves: " << endl;
-            printAllMoves(allMoves);
-            /*DEBUG*/
             for(int i = 0; i < allMoves.size(); i++)
             {
                 auto moves = allMoves[i];
@@ -392,29 +399,39 @@ class Game
                     bool isKing = (board[moves.front()->sy][moves.front()->sx] == 'W' || board[moves.front()->sy][moves.front()->sx] == 'B') ? true : false;
                     auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing, curPlayer, board);
 
-                    /*DEBUG*/
-                    cout << "applying moves" << endl;
-                    printMoves(moves);
+                    double resultScore = minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer).first;
+                    if(value < resultScore)
+                    {
+                        value = resultScore;
+                        bestMove = moves;
+                    }
+                    //value = max(value, minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
                     
-                    // cout << "resulting board" << endl;
-                    // printAnyBoard(resultBoard);
-                    // cout << "**************** end of this board ***************" << endl;
-                    /*DEBUG*/
-                    value = max(value, minValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
 
-                    if(value >= beta) return value;
+                    if(value >= beta)
+                    {
+                        return make_pair(value, bestMove);
+                        //return value;
+                    } 
 
                     alpha = max(alpha, value);
                 }
             }
-            return value;
+            return make_pair(value, bestMove);
+            //return value;
         }
 
-        double minValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
+        pair<double, vector<Move*>> minValue(vector<vector<char>> board, double alpha, double beta, int curDepth, int depthLimit, double currentScore, string curPlayer)
         {
+            vector<Move*> bestMove;
             //termination condition
             if(curDepth == depthLimit)
-                return evalAny(board);
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
 
             string nextPlayer = "";
             if(curPlayer == "BLACK")
@@ -433,7 +450,12 @@ class Game
             
             vector<vector<Move*>> allMoves;
             if(pieces.empty())
-                return evalAny(board);
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
             for(auto p : pieces)
             {
                 bool isKing = (board[p.first][p.second] == 'W' || board[p.first][p.second] == 'B') ? true : false;
@@ -442,13 +464,17 @@ class Game
             }
             // if there is no valid move
             if(allMoves.size() == 1 && allMoves[0].empty())
-                return evalAny(board);
-            
-
+            {
+                double finalScore = evalAny(board);
+                return make_pair(finalScore, bestMove);
+                //return evalAny(board);
+            }
+                
             /*DEBUG*/
-            cout << "all valid moves: " << endl;
+            cout << "all valid moves " << endl;
             printAllMoves(allMoves);
             /*DEBUG*/
+
             for(int i = 0; i < allMoves.size(); i++)
             {
                 auto moves = allMoves[i];
@@ -457,26 +483,39 @@ class Game
                 {
                     bool isKing = (board[moves.front()->sy][moves.front()->sx] == 'W' || board[moves.front()->sy][moves.front()->sx] == 'B') ? true : false;
                     auto resultBoard = evalMoves(moves, moves.front()->sy, moves.front()->sx, currentScore, isKing, curPlayer, board);
-                    /*DEBUG*/
-                    cout << "applying moves" << endl;
-                    printMoves(moves);
-                    /*DEBUG*/
-                    value = min(value, maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
 
+                    double resultScore = maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer).first;
+
+                    cout << "current depth: " << curDepth << endl;
                     cout << "current value: " << value << endl;
+                    cout << "current i: " << i << endl;
+                    cout << "result score after applying this move: " << resultScore << endl;
+                    printMoves(moves);
+                    if(value > resultScore)
+                    {
+                        value = resultScore;
+
+                        cout << "updating value with this move: " << endl;
+                        printMoves(moves);
+                        cout << "with value: " << value << endl;
+                        bestMove = moves;
+                    }
+                    //value = min(value, maxValue(resultBoard, alpha, beta, curDepth + 1, depthLimit, evalAny(resultBoard), nextPlayer));
+
 
                     if(value <= alpha) 
                     {
-                        cout << "hit here" << endl;
-                        cout << "value: " << value << endl;
-                        return value;
+                        return make_pair(value, bestMove);
+                        //return value;
                     }
                     
 
                     beta = min(beta, value);
                 }
             }
-            return value;
+
+            return make_pair(value, bestMove);
+            //return value;
         }
 
         double evalAny(vector<vector<char>>& board)
@@ -593,11 +632,11 @@ int main()
     double currentScore = game.eval();
     string player = game.player;
 
-
-    double value = game.abSearch(game.board, 2, currentScore);
-    auto move = game.findMove(value, currentScore);
+    pair<double, vector<Move*>> result;
+    result = game.abSearch(game.board, 3, currentScore);
+    cout << "final score: " << result.first << endl;
     string outputMove = "";
-    for(auto m : move)
+    for(auto m : result.second)
     {
         outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
         if(outputMove.size())
@@ -605,144 +644,6 @@ int main()
     }
 
 
-    //auto pieces = game.getAllPiece(player);
-
-    /***************************************************************************************************************************************************/
-    // cout << "initial board: " << endl;
-    // game.printBoard();
-    // cout << "inital score: " << game.eval() << endl;
-    // cout << "*****************************" << endl;
-
-    // auto pieces = game.getAllPiece(player);
-    // for(auto p : pieces)
-    // {
-    //     //cout << "row: " << p.first << " col: " << p.second << endl;
-    //     bool isKing = (game.board[p.first][p.second] == 'W' || game.board[p.first][p.second] == 'B') ? true : false;
-    //     auto allMoves = game.getAllMoves(p.first, p.second, isKing, currentScore);
-
-    //     cout << "current piece moves for row: " << p.first << " col: " << p.second << endl;
-    //     for(auto moves : allMoves)
-    //     {
-    //         string outputMove = "";
-    //         for(auto m : moves)
-    //         {
-    //             outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
-            
-    //             if(outputMove.size())
-    //                 cout << outputMove << endl;
-    //         }
-    //         game.evalMoves(moves, p.first, p.second, currentScore, isKing);
-    //     }
-    // }
-
-    /***************************************************************************************************************************************************/
-
-
-
-    // vector<vector<Move*>> allMoves;
-    // vector<Move*> moves;
-    // game.getAllJumpMoves(6,4, false, moves,  allMoves, false, currentScore);
-    //vector<Move*> moves = game.getAllSingleMoves(6,4,true, currentScore);
-    //auto allMoves = game.getAllMoves(2,3, true, currentScore);
-  
-
-    // for(auto m : moves)
-    // {
-    //     game.board[m->dy][m->dx] = '*';
-    //     cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
-    //     cout << "Score: " << m->finalScore << endl;
-    // }
-        
     
-    // if(allMoves.size() != 1)
-    //     game.board[6][4] = '!';
-
-
-    // string outputMove = "";
-    // for(auto moves : allMoves)
-    // {
-    //     //double originScore = currentScore;
-    //     auto tmpBoard = game.board;
-    //     for(int i = 0; i < moves.size(); i++)
-    //     {
-
-    //         if(i == moves.size() - 1)
-    //         {
-    //             if(moves[i]->captured != '/')
-    //             {
-    //                 //game.board[moves[i]->skipped.second][moves[i]->skipped.first] = 'x';
-    //                 // if(moves[i]->captured == 'b')
-    //                 //     currentScore += 1;
-    //                 // else if(moves[i]->captured == 'B')
-    //                 //     currentScore += 1.5;
-    //                 // else if(moves[i]->captured == 'w')
-    //                 //     currentScore -= 1;
-    //                 // else if(moves[i]->captured == 'W')
-    //                 //     currentScore -= 1.5;
-    //                 tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = 'x';
-                    
-    //             }
-
-    //             //check if it is crowned
-    //             if(moves[i]->isCrowned)
-    //             {
-    //                 if(player == "BLACK")
-    //                     currentScore -= 0.5;
-    //                 else
-    //                     currentScore += 0.5;
-    //             }
-                    
-    //             tmpBoard[moves[i]->dy][moves[i]->dx] = '@';           
-    //         }
-                
-    //         else
-    //         {
-    //             if(moves[i]->captured != '/')
-    //             {
-    //                 tmpBoard[moves[i]->skipped.second][moves[i]->skipped.first] = 'x';
-    //                 // if(moves[i]->captured == 'b')
-    //                 //     currentScore += 1;
-    //                 // else if(moves[i]->captured == 'B')
-    //                 //     currentScore += 1.5;
-    //                 // else if(moves[i]->captured == 'w')
-    //                 //     currentScore -= 1;
-    //                 // else if(moves[i]->captured == 'W')
-    //                 //     currentScore -= 1.5;
-    //             }
-    //             //tmpBoard[moves[i]->dy][moves[i]->dx] = '@';
-                    
-    //         }
-    //         outputMove = moves[i]->moveType + " " + (char)(moves[i]->sx + 'a') + to_string((8 - moves[i]->sy)) + " " + (char)(moves[i]->dx + 'a') + to_string((8 - moves[i]->dy));
-            
-    //         if(outputMove.size())
-    //             cout << outputMove << endl;
-                
-            
-    //     }
-    //     if(outputMove.size())
-    //     {
-    //         //moves.back()->finalScore = currentScore;
-    //         //cout << "final score on this move: " << moves.back()->finalScore << endl;  
-    //         cout << "board after move: " << endl;
-    //         printCurBoard(tmpBoard);
-    //         cout << "-------------------" << endl;
-    //         //game.printBoard();
-    //     }
-    //     //currentScore = originScore;
-    // }
-
-    
-    // string output = "";
-    // for(auto moves : allMoves)
-    // {
-    //     for(auto m : moves)
-    //     {
-    //         output = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
-    //         cout << output << endl;
-    //     }
-    //         //cout << m->moveType << " " << (char)(m->sx + 'a') << (8 - m->sy) << " " << (char)(m->dx + 'a') << (8 - m->dy) << endl;
-    //     if(output.size())    
-    //         cout << "-------------------" << endl;
-    // }
     return 0;
 }
