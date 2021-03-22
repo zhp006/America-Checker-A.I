@@ -564,6 +564,29 @@ class Game
             return ret;
         }
 
+        void writeMoveToFile(const vector<Move*>& move)
+        {
+            ofstream output;
+            output.open("output.txt");
+            string outputMove = "";
+            if(move.empty()) return;
+            for(auto m : move)
+            {
+                outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+                if(outputMove.size())
+                    output << outputMove << endl;
+            }
+
+        }
+
+        void playSingleMove(double currentScore)
+        {
+            auto piece = getAllPiece(player, board).front();
+            bool isKing = (board[piece.first][piece.second] == 'W' || board[piece.first][piece.second] == 'B') ? true : false;
+            auto move = getAllMoves(piece.first, piece.second, isKing, 0.0, player, board).back();
+
+            writeMoveToFile(move);
+        }
         /*-------------------------------------------------------DEBUG FUNCTIONS-------------------------------------------------------*/
 
         /* DEBUG print board */
@@ -638,15 +661,21 @@ int main()
     double currentScore = game.eval();
     string player = game.player;
 
-    pair<double, vector<Move*>> result;
-    result = game.abSearch(game.board, 3, currentScore);
-    string outputMove = "";
-    for(auto m : result.second)
-    {
-        outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
-        if(outputMove.size())
-            cout << outputMove << endl;
-    }
+    
+    if(game.mode == "SINGLE")
+        game.playSingleMove(currentScore);
+
+
+
+    // pair<double, vector<Move*>> result;
+    // result = game.abSearch(game.board, 3, currentScore);
+    // string outputMove = "";
+    // for(auto m : result.second)
+    // {
+    //     outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+    //     if(outputMove.size())
+    //         cout << outputMove << endl;
+    // }
 
 
     
