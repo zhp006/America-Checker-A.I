@@ -656,17 +656,34 @@ class Game
         void playGameMode(double currentScore)
         {
             pair<double, vector<Move*>> result;
-            result = abSearch(board, 6, currentScore);
+
+            int depth = 8;
+
+            if(timeLeft < 100.0 && timeLeft >= 80.0)
+                depth = 7;
+            else if(timeLeft < 80.0 && timeLeft >= 40.0)
+                depth = 5;
+            else if(timeLeft < 40.0 && timeLeft >= 20.0)
+                depth = 4;
+            else if(timeLeft < 20.0 && timeLeft >= 10.0)
+                depth = 3;
+            else if(timeLeft < 10.0 && timeLeft >= 3.0)
+                depth = 2;
+            else if(timeLeft < 3.0)
+                depth = 1;
+            
+            
+            result = abSearch(board, depth, currentScore);
             writeMoveToFile(result.second);
 
 
-            string outputMove = "";
-            for(auto m : result.second)
-            {
-                outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
-                if(outputMove.size())
-                    cout << outputMove << endl;
-            }
+            // string outputMove = "";
+            // for(auto m : result.second)
+            // {
+            //     outputMove = m->moveType + " " + (char)(m->sx + 'a') + to_string((8 - m->sy)) + " " + (char)(m->dx + 'a') + to_string((8 - m->dy));
+            //     if(outputMove.size())
+            //         cout << outputMove << endl;
+            // }
         }
         /*-------------------------------------------------------DEBUG FUNCTIONS-------------------------------------------------------*/
 
@@ -721,6 +738,8 @@ class Game
                     cout << outputMove << endl;
             }
         }
+
+        /*-------------------------------------------------------DEBUG FUNCTIONS ENDS-------------------------------------------------------*/
 
 };
 
